@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:record/record.dart'; // ✅ from pubspec
-import 'package:just_audio/just_audio.dart'; // ✅ for playback
-import 'package:path_provider/path_provider.dart'; // ✅ for file path
-import 'package:path/path.dart' as p; // ✅ for path operations
+import 'package:record/record.dart'; // ✅ Correct
+import 'package:just_audio/just_audio.dart'; // ✅ Playback
+import 'package:path_provider/path_provider.dart'; // ✅ File path
+import 'package:path/path.dart' as p; // ✅ Path operations
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,7 +14,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final Record audioRecorder = Record(); // ✅ Correct type
+  final AudioRecorder audioRecorder =
+      AudioRecorder(); // ✅ Correct instantiation
   final AudioPlayer audioPlayer = AudioPlayer();
 
   String? recordingPath;
@@ -66,13 +67,14 @@ class _HomePageState extends State<HomePage> {
     return FloatingActionButton(
       onPressed: () async {
         if (isRecording) {
-          final path = await audioRecorder.stop(); // ✅ stop recording
+          final path = await audioRecorder.stop();
           setState(() {
             isRecording = false;
             recordingPath = path;
           });
         } else {
-          if (await audioRecorder.hasPermission()) {
+          final hasPermission = await audioRecorder.hasPermission();
+          if (hasPermission) {
             final dir = await getApplicationDocumentsDirectory();
             final filePath = p.join(
               dir.path,
@@ -80,11 +82,12 @@ class _HomePageState extends State<HomePage> {
             );
 
             await audioRecorder.start(
-              // ✅ start recording
+              const RecordConfig(
+                encoder: AudioEncoder.aacLc,
+                bitRate: 128000,
+                // Removed: samplingRate (not supported in v5.x)
+              ),
               path: filePath,
-              encoder: AudioEncoder.aacLc,
-              bitRate: 128000,
-              samplingRate: 44100,
             );
 
             setState(() {

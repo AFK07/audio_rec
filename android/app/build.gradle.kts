@@ -15,7 +15,7 @@ android {
     defaultConfig {
         // ✅ Must match namespace
         applicationId = "com.example.audio_rec2"
-        minSdk = flutter.minSdkVersion
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
