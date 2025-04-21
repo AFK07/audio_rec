@@ -17,11 +17,20 @@ class _SavedRecordingsScreenState extends State<SavedRecordingsScreen> {
   List<FileSystemEntity> recordings = [];
   final AudioPlayer audioPlayer = AudioPlayer();
   String? currentlyPlaying;
+  String? currentLocation;
 
   @override
   void initState() {
     super.initState();
     loadRecordings();
+    retrieveLocation();
+  }
+
+  Future<void> retrieveLocation() async {
+    final location = await getLocationName();
+    setState(() {
+      currentLocation = location;
+    });
   }
 
   Future<void> loadRecordings() async {
@@ -52,19 +61,35 @@ class _SavedRecordingsScreenState extends State<SavedRecordingsScreen> {
 
   Future<String> getLocationName() async {
     try {
-      final position = await Geolocator.getCurrentPosition();
-      final placemarks =
-          await placemarkFromCoordinates(position.latitude, position.longitude);
-
-      if (placemarks.isNotEmpty) {
-        final place = placemarks.first;
-        return "${place.street ?? ''}, ${place.locality ?? ''}, ${place.country ?? ''}"
-            .trim();
-      } else {
-        return "Unknown location";
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        permission = await Geolocator.requestPermission();
+        if (permission != LocationPermission.always &&
+            permission != LocationPermission.whileInUse) {
+          return "Location permission denied";
+        }
       }
+
+      final position = await Geolocator.getCurrentPosition();
+      final latitude = position.latitude.toStringAsFixed(5);
+      final longitude = position.longitude.toStringAsFixed(5);
+
+      try {
+        final placemarks = await placemarkFromCoordinates(
+            position.latitude, position.longitude);
+        if (placemarks.isNotEmpty) {
+          final place = placemarks.first;
+          final name =
+              "${place.street ?? ''}, ${place.locality ?? ''}, ${place.country ?? ''}"
+                  .trim();
+          return name.isNotEmpty ? name : "Lat: $latitude, Long: $longitude";
+        }
+      } catch (_) {}
+
+      return "Lat: $latitude, Long: $longitude";
     } catch (e) {
-      return "Failed to retrieve location";
+      return "Location unavailable";
     }
   }
 
@@ -119,45 +144,36 @@ class _SavedRecordingsScreenState extends State<SavedRecordingsScreen> {
                 return FutureBuilder<String>(
                   future: getDuration(file.path),
                   builder: (context, durationSnapshot) {
-                    return FutureBuilder<String>(
-                      future: getLocationName(),
-                      builder: (context, locationSnapshot) {
-                        final durationText =
-                            durationSnapshot.data ?? "--:--:--";
-                        final location =
-                            locationSnapshot.data ?? "Location unknown";
-
-                        return ListTile(
-                          title: Text(filename),
-                          subtitle: Text("Duration: $durationText\n$location"),
-                          isThreeLine: true,
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: Icon(currentlyPlaying == file.path
-                                    ? Icons.stop
-                                    : Icons.play_arrow),
-                                onPressed: () async {
-                                  if (currentlyPlaying == file.path) {
-                                    await audioPlayer.stop();
-                                    setState(() => currentlyPlaying = null);
-                                  } else {
-                                    await audioPlayer.setFilePath(file.path);
-                                    await audioPlayer.play();
-                                    setState(
-                                        () => currentlyPlaying = file.path);
-                                  }
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () => deleteRecording(file),
-                              )
-                            ],
+                    final durationText = durationSnapshot.data ?? "--:--:--";
+                    return ListTile(
+                      title: Text(filename),
+                      subtitle: Text(
+                          "Duration: $durationText\n${currentLocation ?? 'Fetching location...'}"),
+                      isThreeLine: true,
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(currentlyPlaying == file.path
+                                ? Icons.stop
+                                : Icons.play_arrow),
+                            onPressed: () async {
+                              if (currentlyPlaying == file.path) {
+                                await audioPlayer.stop();
+                                setState(() => currentlyPlaying = null);
+                              } else {
+                                await audioPlayer.setFilePath(file.path);
+                                await audioPlayer.play();
+                                setState(() => currentlyPlaying = file.path);
+                              }
+                            },
                           ),
-                        );
-                      },
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => deleteRecording(file),
+                          )
+                        ],
+                      ),
                     );
                   },
                 );
