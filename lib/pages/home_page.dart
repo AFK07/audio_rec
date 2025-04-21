@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'saved_recordings_page.dart';
 
 import 'package:flutter/material.dart';
 import 'package:record/record.dart'; // ✅ Correct
@@ -58,6 +59,18 @@ class _HomePageState extends State<HomePage> {
             )
           else
             const Text("No recording yet."),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SavedRecordingsScreen(),
+                ),
+              );
+            },
+            child: const Text("View Saved Recordings"),
+          ),
         ],
       ),
     );

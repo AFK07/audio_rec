@@ -10,6 +10,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(title: 'Fixed Recorder App', home: const HomePage());
+    return MaterialApp(
+      title: 'Audio Recorder',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: const HomePage(), // 👈 You can link from here or add routes
+    );
   }
 }
